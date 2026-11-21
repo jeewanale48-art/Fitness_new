@@ -1,0 +1,10 @@
+<?php
+require_once __DIR__.'/includes/init.php'; require_once __DIR__.'/includes/auth.php';
+if(!empty($_SESSION['user_id'])) redirect(($_SESSION['role']??'')==='admin'?'admin/dashboard.php':'dashboard.php');
+$error='';$email='';$notice=takeFlash();
+if($_SERVER['REQUEST_METHOD']==='POST'){verifyCsrf();$email=strtolower(trim((string)($_POST['email']??'')));$password=(string)($_POST['password']??'');
+ if(!filter_var($email,FILTER_VALIDATE_EMAIL)||$password==='')$error='Enter a valid email and password.';
+ else{$q=$pdo->prepare("SELECT id,name,email,password_hash,role FROM users WHERE email=? LIMIT 1");$q->execute([$email]);$u=$q->fetch();if(!$u||!password_verify($password,$u['password_hash']))$error='Email or password is incorrect.';elseif($u['role']!=='user')$error='Please use the administrator sign-in page.';else{signInUser($u);redirect('dashboard.php');}}
+}
+?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Member sign in | FitTrack</title><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/style2.css"></head><body class="auth-v2"><header class="public-nav"><a class="brand" href="index.php">✦ FitTrack</a><a href="index.php">← Home</a></header><main class="auth-card-v2 compact"><span class="eyebrow">MEMBER PORTAL</span><h1>Welcome back.</h1><p>Sign in to continue your fitness journey.</p><?php if($notice):?><div class="alert <?=e($notice['type'])?>"><?=e($notice['message'])?></div><?php endif;?><?php if($error):?><div class="alert error"><?=e($error)?></div><?php endif;?><form method="post"><input type="hidden" name="csrf_token" value="<?=e(csrfToken())?>"><div class="field"><label>Email address</label><input type="email" name="email" value="<?=e($email)?>" required></div><div class="field"><label>Password</label><input type="password" name="password" required></div><button class="button full">Sign in →</button></form><p class="form-foot">New to FitTrack? <a href="register.php">Create account</a></p></main></body></html>
